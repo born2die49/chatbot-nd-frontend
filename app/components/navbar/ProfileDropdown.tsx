@@ -1,6 +1,20 @@
 'use client';
 
-const ProfileDropdown = () => {
+import MenuLink from "./MenuLink";
+
+interface ProfileDropdownProps {
+  onLogout?: () => void;
+}
+
+const ProfileDropdown = ({ onLogout }: ProfileDropdownProps) => {
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      console.log('Logout clicked');
+    }
+  };
+
   const menuItems = [
     {
       label: 'Settings',
@@ -32,7 +46,7 @@ const ProfileDropdown = () => {
           <line x1="21" y1="12" x2="9" y2="12"></line>
         </svg>
       ),
-      onClick: () => console.log('Logout clicked')
+      onClick: handleLogout
     }
   ];
 
@@ -40,14 +54,12 @@ const ProfileDropdown = () => {
     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden border border-gray-200">
       <div className="py-2">
         {menuItems.map((item, index) => (
-          <button
+          <MenuLink
             key={index}
+            label={item.label}
+            icon={item.icon}
             onClick={item.onClick}
-            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <span className="mr-2 text-gray-500">{item.icon}</span>
-            {item.label}
-          </button>
+          />
         ))}
       </div>
     </div>
