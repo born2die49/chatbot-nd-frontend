@@ -4,14 +4,21 @@ import { useState } from 'react';
 import FormInput from '../forms/FormInput';
 import Button from '../buttons/Button';
 import Modal from './Modal';
+import { useRouter } from "next/navigation";
+import { handleLogin } from '@/app/lib/actions';
+import apiService from '@/app/services/apiService';
 
 interface SignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  onSignupSuccess?: () => void;
 }
 
-const SignupModal = ({ isOpen, onClose, onSwitchToLogin }: SignupModalProps) => {
+const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onSignupSuccess }: SignupModalProps) => {
+  // variables
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,6 +39,7 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }: SignupModalProps) => 
     }
   };
 
+  // frontend validation
   const validateForm = () => {
     let isValid = true;
     const newErrors = { ...errors };
@@ -64,13 +72,59 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }: SignupModalProps) => 
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (validateForm()) {
-      // Here you would typically send the data to your backend
-      console.log('Signup form submitted:', formData);
-      // For now, let's just close the modal
-      onClose();
+      try {
+        const registrationData = {
+          username: formData.email,  // Django REST Auth expects username
+          email: formData.email,
+          password1: formData.password,
+          password2: formData.confirmPassword
+        };
+
+        // backend
+        const response = await apiService.post('/api/auth/register/', JSON.stringify(registrationData));
+
+        console.log('Signup form submitted:', formData);
+
+        // success
+        if(response.access) {
+          // handle login
+          handleLogin(response.user.pk, response.access, response.refresh )
+
+          // close the modal
+          onClose();
+          if (onSignupSuccess) {
+            onSignupSuccess();
+            setFormData({email: '', password: '', confirmPassword: ''});
+          }
+        } else {
+          // error object
+          const newErrors = { 
+            email: '', 
+            password: '', 
+            confirmPassword: '' 
+          };
+
+          // map errors from response
+          const errorMessages = Object.values(response).map((error: any) => error);
+
+          if (errorMessages.length > 0) newErrors.email = errorMessages[0];
+          if (errorMessages.length > 1) newErrors.password = errorMessages[1];
+          if (errorMessages.length > 2) newErrors.confirmPassword = errorMessages[2];
+
+          setErrors(newErrors);
+        } 
+      } catch (error) {
+        // Handle network errors
+        setErrors({
+          email: 'Network error. Please try again later.',
+          password: '',
+          confirmPassword: ''
+        });
+      }
     }
   };
 

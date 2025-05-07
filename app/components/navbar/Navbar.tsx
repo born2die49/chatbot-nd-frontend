@@ -1,18 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Logo from './Logo';
 import ProfileDropdown from './ProfileDropdown';
 import AuthButton from '../buttons/AuthButton';
-import LoginModal from '../modals/LoginModal';
+import LoginModal from '../modals/login/LoginModal';
 import SignupModal from '../modals/SignupModal';
 import Image from 'next/image';
+import { getUserId, resetAuthCookies } from '@/app/lib/actions'; 
+import { useRouter } from 'next/navigation';
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const router = useRouter();
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const userId = await getUserId();
+      setIsLoggedIn(!!userId);
+    };
+    
+    checkAuthStatus();
+  }, []);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -42,9 +55,25 @@ const Navbar = () => {
     closeLoginModal();
   };
 
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    closeLoginModal();
+    router.refresh(); // Refresh the page to update state across components
+  };
+
+  const handleSignupSuccess = () => {
+    setIsLoggedIn(true);
+    closeSignupModal();
+    router.refresh(); // Refresh the page to update state across components
+  };
+
   const handleLogout = () => {
+    resetAuthCookies();
+
     setIsLoggedIn(false);
     setIsDropdownOpen(false);
+
+    router.refresh();
   };
 
   return (
@@ -87,13 +116,15 @@ const Navbar = () => {
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={closeLoginModal} 
-        onSwitchToSignup={openSignupModal} 
+        onSwitchToSignup={openSignupModal}
+        onLoginSuccess={handleLoginSuccess}
       />
       
       <SignupModal 
         isOpen={isSignupModalOpen} 
         onClose={closeSignupModal} 
-        onSwitchToLogin={openLoginModal} 
+        onSwitchToLogin={openLoginModal}
+        onSignupSuccess={handleSignupSuccess}
       />
     </>
   );
