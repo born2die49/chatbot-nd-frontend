@@ -27,7 +27,7 @@ const LoginForm = ({ onClose, onLoginSuccess }: LoginFormProps) => {
     if (validateForm()) {
       try {
         // backend
-        const response = await apiService.post('/api/auth/login/', JSON.stringify(formData));
+        const response = await apiService.post('/api/auth/login/', formData);
         
         // success
         if (response.access && response.refresh && response.user?.pk) {

@@ -36,7 +36,7 @@ const SignupForm = ({ onClose, onSignupSuccess }: SignupFormProps) => {
         };
         
         // backend
-        const response = await apiService.post('/api/auth/register/', JSON.stringify(registrationData));
+        const response = await apiService.post('/api/auth/register/', registrationData);
         
         // success
         if(response.access) {
