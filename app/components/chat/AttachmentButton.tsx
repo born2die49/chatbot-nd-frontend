@@ -1,19 +1,47 @@
 'use client';
 
 import { useRef } from 'react';
+import apiService from '@/app/services/apiService';
 
-const AttachmentButton = () => {
+interface AttachmentButtonProps {
+  onUploadSuccess?: (document: any) => void; // Callback with uploaded document data
+  onUploadError?: (error: any) => void;
+}
+
+const AttachmentButton = ({ onUploadSuccess, onUploadError }: AttachmentButtonProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAttachmentClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       console.log('Files selected:', files);
       // Handle file upload logic here
+      const file = files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', file.name);
+
+      try {
+        const response = await apiService.post('/api/documents/', formData, true);
+        if (onUploadSuccess) {
+          onUploadSuccess(response);
+        } 
+      } catch (error) {
+        console.error('File upload failed:', error);
+        // useToast({ title: "Upload failed", description: error.message, variant: "destructive" });
+        if (onUploadError) {
+          onUploadError(error);
+        }
+      } finally {
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
     }
   };
 

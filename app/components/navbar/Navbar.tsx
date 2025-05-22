@@ -8,20 +8,48 @@ import LoginModal from '../modals/login/LoginModal';
 import SignupModal from '../modals/SignupModal';
 import Image from 'next/image';
 import { getUserId, resetAuthCookies } from '@/app/lib/actions'; 
+import apiService from '@/app/services/apiService';
 import { useRouter } from 'next/navigation';
+
+interface UserProfile {
+  name: string | null;
+  email: string | null;
+  avatar_url_display: string | null;
+}
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const router = useRouter();
 
+  const fetchUserProfile = async () => {
+    try {
+      const profile = await apiService.get('/api/profile/');
+      setUserProfile({
+        name: profile.name,
+        email: profile.email,
+        avatar_url_display: profile.avatar_url_display || "/user-avatar-male.png" 
+      });
+    } catch (error) {
+      console.error("Failed to fetch user profile", error);
+      setUserProfile({ name: null, email: null, avatar_url_display: "/user-avatar-male.png" }); // Fallback
+    }
+  };
+
   // Check authentication status on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
       const userId = await getUserId();
-      setIsLoggedIn(!!userId);
+      const loggedIn = !!userId;
+      setIsLoggedIn(loggedIn);
+      if (loggedIn) {
+        await fetchUserProfile();
+      } else {
+        setUserProfile(null);
+      }
     };
     
     checkAuthStatus();
@@ -47,12 +75,6 @@ const Navbar = () => {
 
   const closeSignupModal = () => {
     setIsSignupModalOpen(false);
-  };
-
-  const handleLogin = () => {
-    // This would be replaced with your actual authentication logic
-    setIsLoggedIn(true);
-    closeLoginModal();
   };
 
   const handleLoginSuccess = () => {
@@ -89,10 +111,12 @@ const Navbar = () => {
                 className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <Image
-                  src={"/user-avatar-male.png"}
-                  alt='user avatar profile pic'
-                  fill
-                  className="object-cover rounded-4xl"
+                  src={userProfile?.avatar_url_display || "/user-avatar-male.png"}
+                  alt={userProfile?.name || 'User Avatar'}
+                  width={40}
+                  height={40}
+                  // fill
+                  className="object-cover"
                 />
               </button>
               {isDropdownOpen && <ProfileDropdown onLogout={handleLogout} />}

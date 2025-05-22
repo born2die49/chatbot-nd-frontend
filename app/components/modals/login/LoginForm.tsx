@@ -3,7 +3,7 @@
 import FormInput from '../../forms/FormInput';
 import Button from '../../buttons/Button';
 import ForgotPassword from './ForgotPassword';
-import { handleLogin } from '@/app/lib/actions';
+import { handleLogin as handleLoginCookies } from '@/app/lib/actions';
 import apiService from '@/app/services/apiService';
 import useLoginForm from '@/app/hooks/useLoginForm';
 
@@ -30,23 +30,37 @@ const LoginForm = ({ onClose, onLoginSuccess }: LoginFormProps) => {
         const response = await apiService.post('/api/auth/login/', formData);
         
         // success
-        if (response.access && response.refresh && response.user?.pk) {
-          await handleLogin(response.user.pk, response.access, response.refresh);
+        if (response.access_token && response.refresh_token && response.user?.pk) { // dj_rest_auth default keys
+          await handleLoginCookies(response.user.pk.toString(), response.access_token, response.refresh_token);
+          resetForm();
+          if (onLoginSuccess) {
+            onLoginSuccess(); // This will call close in Navbar
+          } else {
+            onClose();
+          }
+        } else if (response.access && response.refresh && response.user?.pk) {
+          await handleLoginCookies(response.user.pk.toString(), response.access, response.refresh);
           resetForm();
           // close the modal
           onClose();
           if (onLoginSuccess) {
             onLoginSuccess();
+          } else {
+            onClose();
           }
         } else {
           handleApiErrors(response);
         }
-      } catch (error) {
+      } catch (error: any) {
         // Handle network errors
-        setErrors({
-          email: 'Network error. Please try again later.',
-          password: ''
-        });
+        if (error && error.data) {
+            handleApiErrors(error.data);
+        } else {
+            setErrors({
+              email: 'Network error. Please try again later.',
+              password: ''
+            });
+        }
       }
     }
   };
@@ -71,8 +85,8 @@ const LoginForm = ({ onClose, onLoginSuccess }: LoginFormProps) => {
     }
     
     // If no specific errors were found but login failed, show generic error
-    if (!newErrors.email && !newErrors.password) {
-      newErrors.email = 'Login failed. Please check your credentials.';
+    if (!newErrors.email && !newErrors.password  && (response.detail || (Object.keys(response).length > 0))) {
+      newErrors.email = response.detail || 'Login failed. Please check your credentials.';
     }
     setErrors(newErrors);
   };
