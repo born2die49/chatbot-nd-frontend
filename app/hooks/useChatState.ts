@@ -107,17 +107,20 @@ export function useChatState() {
     }
   }, [activeSessionId, fetchMessages]);
 
-  const createNewSession = async () => {
+  const createNewSession = async (vectorStoreId?: string) => {
     if (!isLoggedIn) {
       setError("Please log in to create a new chat session.");
       return null;
     }
     setError(null);
     try {
-      const newSession = await apiService.post('/api/chat/sessions/', { title: 'New Chat' });
-      setSessions(prevSessions => [newSession, ...prevSessions]);
-      setActiveSessionId(newSession.id);
-      return newSession;
+      const payload: { title: string; vector_store?: string } = { title: 'New Chat' };
+        if (vectorStoreId) {
+            payload.vector_store = vectorStoreId;
+        }
+        const newSession = await apiService.post('/api/chat/sessions/', payload);
+        // ... (existing logic to update state)
+        return newSession;
     } catch (err: any) {
       setError('Failed to create a new chat session.');
       console.error(err);

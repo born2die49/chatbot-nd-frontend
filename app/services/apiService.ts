@@ -61,6 +61,18 @@ const apiService = {
     .catch(this.handleError);
   },
 
+  patch: async function(url: string, data: any, isFormData: boolean = false): Promise<any> {
+  const headers = await this.prepareHeaders(isFormData);
+  console.log('PATCH Request:', `${process.env.NEXT_PUBLIC_API_HOST}${url}`, data);
+  return fetch(`${process.env.NEXT_PUBLIC_API_HOST}${url}`, {
+    method: 'PATCH',
+    body: isFormData ? data : JSON.stringify(data),
+    headers: headers,
+  })
+  .then(this.handleResponse)
+  .catch(this.handleError);
+},
+
   delete: async function(url: string): Promise<any> {
     const headers = await this.prepareHeaders();
     console.log('DELETE Request:', `${process.env.NEXT_PUBLIC_API_HOST}${url}`);
